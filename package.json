@@ -1,0 +1,28 @@
+{
+  "name": "allex_stateclientcorelib",
+  "version": "1.0.0",
+  "description": "AllexJS lib for streaming the State",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/allex-clientcore-libs/state.git"
+  },
+  "dependencies": {
+    "allex_streamclientcorelib": "1.x"
+  },
+  "keywords": [
+    "ecosystem:AllexJS",
+    "state",
+    "streaming",
+    "lib"
+  ],
+  "author": "Andrija Petrovic <andrija.hers@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/allex-clientcore-libs/state/issues"
+  },
+  "homepage": "https://github.com/allex-clientcore-libs/state#readme"
+}
