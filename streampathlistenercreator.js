@@ -98,9 +98,10 @@ function createStreamPathListener(lib,StreamSource, Stream2Map){
     }
     if(this.pathmask.every(comparer.bind(null,path))){
       this.handleStreamItemSuper(item);
-    }else{
+    }/*else{
       //console.log(process.pid, 'nok', item.p, 'because', this.pathmask.map(function(item){return item.criterion();}));
-    }
+    }*/
+    path = null;
   };
   StreamPathListener.prototype.handleStreamItem = StreamPathListener.prototype.onStream;
   StreamPathListener.prototype.handleStreamItemSuper = function (item) {

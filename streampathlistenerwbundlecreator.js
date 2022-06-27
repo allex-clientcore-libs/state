@@ -97,6 +97,8 @@ function createStreamPathListener(lib,StreamSource, Stream2Map){
         this.handleStreamItem(item);
       }
     }
+    item = null;
+    path = null;
   };
   return StreamPathListener;
 }

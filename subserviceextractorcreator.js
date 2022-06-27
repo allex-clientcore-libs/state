@@ -59,16 +59,20 @@ function createSubServiceExtractor(lib,StreamSource){
   SubServiceExtractor.prototype.onStream = function(item){
     var p = item.p,
       subservicename,
-      initparams;
+      initparams,
+      cb;
     if(p && p.length===1 && p[0].indexOf('have')===0 && item.o==='s' && item.d===true) {
       subservicename = p[0].substring(4);
       initparams = this.initmap.get(subservicename);
       if(initparams){
+        cb = initparams.cb;
         //console.log('SubServiceExtractor trying to subConnect to', subservicename, 'as', initparams);
         this.supersink.subConnect(subservicename,initparams.identity,initparams.propertyhash).done(
-          this.onSubConnected.bind(this,initparams.cb,subservicename),
-          this.onSubConnectFailed.bind(this,initparams.cb,subservicename)
+          this.onSubConnected.bind(this,cb,subservicename),
+          this.onSubConnectFailed.bind(this,cb,subservicename)
         );
+        subservicename = null;
+        cb = null;
       }
     }
     this.handleStreamItem(item);

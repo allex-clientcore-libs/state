@@ -52,46 +52,44 @@ function createStreamBufferCtor(lib,StreamSource,StreamDecoder,StreamDistributor
     return this.stream.attach(handler);
   };
   StreamBuffer.prototype.upsert = function(name,val,namearray,target){
+    var old, ret;
     if (!this.data) {
       return;
     }
-    var ditem = this.data.find({name:name}), ret;
-    if(ditem){
-      //update
-      //console.log('updating', name, ':', ret, 'with', val);
-      ret = ditem.content.content;
-      if(ret!==val){
-        ditem.content.content = val;
-        if (this.data.changed) {
-          this.data.changed.fire(name, val);
-        }
-        return target.updateScalar.bind(target,namearray,val,ret);
-      }
-    }else{
-      //insert
-      //console.log('inserting', val, 'at', name);
-      this.data.add(name,val);
-      return val instanceof this.nodeCtor() ? target.newCollection.bind(target,namearray) : target.newScalar.bind(target,namearray,val);
+    var old = this.data.replace(name, val);
+    if (old!==val) {
+      ret = target.updateScalar.bind(target,namearray,val,old);
+      target = null;
+      namearray = null;
+      val = null;
+      return ret;
     }
-    return lib.dummyFunc;
+    ret = val instanceof this.nodeCtor() ? target.newCollection.bind(target,namearray) : target.newScalar.bind(target,namearray,val);
+    target = null;
+    namearray = null;
+    val = null;
+    return ret;
   };
   StreamBuffer.prototype.createIfNotExists = function(createobj,name,nameindex,namearry){
+    var target, item, und, slc;
     if(nameindex>=namearry.length-1){
       createobj.events.push(createobj.target.upsert(name,createobj.val,namearry,this));
       return;
     }
-    var target=createobj.target;
+    target=createobj.target;
     if(!(target.data && 'function' === typeof target.data.get)){
       throw new lib.Error(namearry,nameindex);
     }
-    var item = target.data.get(name), und;
+    item = target.data.get(name);
     if(item===und){
       if('function' !== typeof target.data.add){
         throw new lib.Error(namearry,nameindex);
       }
       item = new (this.nodeCtor());
       target.data.add(name,item);
-      createobj.events.push(this.newCollection.bind(this,namearry.slice(0,nameindex+1)));
+      slc = namearry.slice(0,nameindex+1);
+      createobj.events.push(this.newCollection.bind(this,slc));
+      slc = null;
     }
     createobj.target = item;
   };
@@ -99,7 +97,7 @@ function createStreamBufferCtor(lib,StreamSource,StreamDecoder,StreamDistributor
     e();
   }
   StreamBuffer.prototype.set = function(name,val){ //throws
-    var ton = typeof name, ups;
+    var ton = typeof name, ups, createobj;
     if('string' === ton || name instanceof String){
       ups = this.upsert(name,val,[name],this);
       if (ups) {
@@ -107,14 +105,14 @@ function createStreamBufferCtor(lib,StreamSource,StreamDecoder,StreamDistributor
       }
     }else if('object' === ton && name instanceof Array){
       try{
-      var createobj = {target:this,events:[],val:val};
-      name.forEach(this.createIfNotExists.bind(this,createobj));
-      createobj.events.forEach(_executor);
-      createobj.target = null;
-      createobj.events = null;
+        createobj = {target:this,events:[],val:val};
+        name.forEach(this.createIfNotExists.bind(this,createobj));
+        createobj.events.forEach(_executor);
+        createobj.target = null;
+        createobj.events = null;
+        createobj = null;
       }
       catch(er){
-        console.error(er.stack);
         console.error(er);
       }
     }
@@ -177,36 +175,41 @@ function createStreamBufferCtor(lib,StreamSource,StreamDecoder,StreamDistributor
         }
         return ret;
       }else{
-        var di = collection.data.find({name:name[index]});
-        if(di){
-          return this.remove(name,index+1,di.content.content);
+        var di = collection.data.get(name[index]);
+        if('undefined' !== typeof di){
+          return this.remove(name,index+1,di);
         }else{
           return;
         }
       }
     }
   };
-  function doItem(sc,path,item,itemname){
+  //static
+  function doItem(path,item,itemname){
     if('object' === typeof item){
       path.push(itemname);
-      lib.traverse(item,doItem.bind(null,sc,path));
+      lib.traverse(item,doItem.bind(this,path));
       path.pop();
-    }else{
-      path.push(itemname);
-      sc.set(path,item);
-      path.pop();
+      path = null;
+      return;
     }
+    path.push(itemname);
+    this.set(path,item);
+    path.pop();
   }
   StreamBuffer.prototype.loadHash = function(hash){
-    lib.traverse(hash,doItem.bind(null,this,[]));
+    lib.traverse(hash,doItem.bind(this,[]));
   };
   function StreamBufferDumper(coll,sink,start,length){
+    var emptyarry = [];
     this.sink = sink;
     if('undefined' !== typeof start && 'undefined' !== typeof length){
-      coll.data.page(this.onItem.bind(this,[]),start,length);
-    }else{
-      coll.data.traverse(this.onItem.bind(this,[]));
+      coll.data.page(this.onItem.bind(this,emptyarry),start,length);
+      emptyarry = null;
+      return;
     }
+    coll.data.traverse(this.onItem.bind(this,emptyarry));
+    emptyarry = null;
   }
   lib.inherit(StreamBufferDumper,StreamCoder);
   StreamBufferDumper.prototype.destroy = function(){
@@ -225,11 +228,12 @@ function createStreamBufferCtor(lib,StreamSource,StreamDecoder,StreamDistributor
       this.newCollection(path);
       item.data.traverse(this.onItem.bind(this,path));
       path.pop(name);
-    }else{
-      path.push(name);
-      this.newScalar(path,item);
-      path.pop();
+      path = null;
+      return;
     }
+    path.push(name);
+    this.newScalar(path,item);
+    path.pop();
   };
   StreamBuffer.prototype.dump = function(func){
     var d = new StreamBufferDumper(this,func);
