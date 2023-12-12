@@ -1,6 +1,6 @@
 {
   "name": "allex_stateclientcorelib",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "AllexJS lib for streaming the State",
   "main": "index.js",
   "scripts": {

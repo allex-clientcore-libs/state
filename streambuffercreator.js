@@ -57,7 +57,7 @@ function createStreamBufferCtor(lib,StreamSource,StreamDecoder,StreamDistributor
       return;
     }
     var old = this.data.replace(name, val);
-    if (old!==val) {
+    if (lib.defined(old)) {
       ret = target.updateScalar.bind(target,namearray,val,old);
       target = null;
       namearray = null;
